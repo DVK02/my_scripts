@@ -1,0 +1,118 @@
+#!/bin/bash
+
+# Function to display todos
+display_todos() {
+    GIT_DIR="$HOME/Git"
+
+    # Help logic
+    if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+        display_help
+    fi
+
+    # Check if the first argument is -l
+    if [[ "$1" == "-l" ]]; then
+        echo "Listing all projects in $GIT_DIR:"
+        for PROJECT in "$GIT_DIR"/*; do
+            if [ -d "$PROJECT" ]; then
+                PROJECT_NAME=$(basename "$PROJECT")
+                echo "$PROJECT_NAME"
+            fi
+        done
+        exit 0
+    fi
+
+    # Handling the -e argument for editing project todos
+    if [[ "$1" == "-e" ]]; then
+        if [ -z "$2" ]; then
+            echo "Error: No project name provided for editing."
+            exit 1
+        fi
+        PROJECT_PATH="$GIT_DIR/$2"
+        if [ ! -d "$PROJECT_PATH" ]; then
+            echo "Error: Project '$2' does not exist."
+            exit 1
+        fi
+        TODO_FILE="$PROJECT_PATH/todo.md"
+        if [ ! -f "$TODO_FILE" ]; then
+            echo "todo.md does not exist for '$2'. Creating a new one."
+            touch "$TODO_FILE"
+        fi
+        # Open todo.md in the default editor
+        ${EDITOR:-nano} "$TODO_FILE"
+        exit 0
+    fi
+
+    if [ "$#" -eq 1 ]; then
+        PROJECT_PATH="$GIT_DIR/$1"
+        if [ -d "$PROJECT_PATH" ] && [ -f "$PROJECT_PATH/todo.md" ]; then
+            echo -e "Todos for project $1: \n"
+            cat "$PROJECT_PATH/todo.md"
+        else
+            echo "Project $1 does not exist or todo.md is missing"
+            exit 1
+        fi
+    else
+        local project_count=0
+        local projects=("$GIT_DIR"/*)
+        for PROJECT in "${projects[@]}"; do
+            if [ -d "$PROJECT" ] && [ -f "$PROJECT/todo.md" ]; then
+                ((project_count++))
+            fi
+        done
+        
+        local counter=0
+        for PROJECT in "${projects[@]}"; do
+            if [ -d "$PROJECT" ] && [ -f "$PROJECT/todo.md" ]; then
+                PROJECT_NAME=$(basename "$PROJECT")
+                echo -e "Todos for project $PROJECT_NAME: \n"
+                cat "$PROJECT/todo.md"
+                ((counter++))
+                # Add visual break except for the last project or if there is only one project
+                if [ "$counter" -lt "$project_count" ]; then
+                    echo -e "\n-----------------------------------------------\n"
+                fi
+            fi
+        done
+    fi
+}
+
+# Function for autocomplete
+_todo_autocomplete() {
+    local git_dir="$HOME/Git"
+    local cur_word="${COMP_WORDS[COMP_CWORD]}"
+    local prev_word="${COMP_WORDS[COMP_CWORD-1]}"
+    local projects=$(cd "$git_dir" && find . -maxdepth 1 -mindepth 1 -type d -exec basename {} \;)
+
+    # Check if the current argument is after an '-e' or if '-e' is being typed
+    if [[ "$prev_word" == "-e" ]] || [[ "$cur_word" == "-e" ]]; then
+        COMPREPLY=( $(compgen -W "${projects}" -- ${cur_word}) )
+    elif [ "$COMP_CWORD" -eq 1 ]; then
+        # Provide project names for autocompletion if no '-e' argument is provided
+        COMPREPLY=( $(compgen -W "${projects} -e" -- ${cur_word}) )
+    fi
+}
+
+# Function to display help/usage information
+display_help() {
+    echo "Usage: todo [OPTION]... [PROJECT_NAME]"
+    echo "Manage your project todos."
+    echo ""
+    echo "Options:"
+    echo "  -l        List all projects"
+    echo "  -e        Edit todo.md for a specified project"
+    echo "  -h, --help  Display this help and exit"
+    echo ""
+    echo "Example:"
+    echo "  todo -l            List all projects inside ~/Git/"
+    echo "  todo -e PROJECT    Edit the todo.md for PROJECT"
+    echo "  todo --help        Display this help and exit"
+    exit 0
+}
+
+# Check if the script is being sourced for autocomplete setup
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+    complete -F _todo_autocomplete todo
+else
+    display_todos "$@"
+fi
+
