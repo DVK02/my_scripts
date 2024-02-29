@@ -33,4 +33,4 @@
 
 # Backup Script
 
-- Automate Backups
+- Automate Backups for root and home
