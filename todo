@@ -2,7 +2,7 @@
 
 # Function to display todos
 display_todos() {
-    GIT_DIR="$HOME/Git"
+    DIR="$HOME/Projects"
 
     # Help logic
     if [[ "$1" == "-h" || "$1" == "--help" ]]; then
@@ -11,8 +11,8 @@ display_todos() {
 
     # Check if the first argument is -l
     if [[ "$1" == "-l" ]]; then
-        echo "Listing all projects in $GIT_DIR:"
-        for PROJECT in "$GIT_DIR"/*; do
+        echo "Listing all projects in $DIR:"
+        for PROJECT in "$DIR"/*; do
             if [ -d "$PROJECT" ]; then
                 PROJECT_NAME=$(basename "$PROJECT")
                 echo "$PROJECT_NAME"
@@ -27,7 +27,7 @@ display_todos() {
             echo "Error: No project name provided for editing."
             exit 1
         fi
-        PROJECT_PATH="$GIT_DIR/$2"
+        PROJECT_PATH="$DIR/$2"
         if [ ! -d "$PROJECT_PATH" ]; then
             echo "Error: Project '$2' does not exist."
             exit 1
@@ -43,7 +43,7 @@ display_todos() {
     fi
 
     if [ "$#" -eq 1 ]; then
-        PROJECT_PATH="$GIT_DIR/$1"
+        PROJECT_PATH="$DIR/$1"
         if [ -d "$PROJECT_PATH" ] && [ -f "$PROJECT_PATH/todo.md" ]; then
             echo -e "Todos for project $1: \n"
             cat "$PROJECT_PATH/todo.md"
@@ -53,7 +53,7 @@ display_todos() {
         fi
     else
         local project_count=0
-        local projects=("$GIT_DIR"/*)
+        local projects=("$DIR"/*)
         for PROJECT in "${projects[@]}"; do
             if [ -d "$PROJECT" ] && [ -f "$PROJECT/todo.md" ]; then
                 ((project_count++))
@@ -78,10 +78,10 @@ display_todos() {
 
 # Function for autocomplete
 _todo_autocomplete() {
-    local git_dir="$HOME/Git"
+    local dir="$HOME/Projects"
     local cur_word="${COMP_WORDS[COMP_CWORD]}"
     local prev_word="${COMP_WORDS[COMP_CWORD-1]}"
-    local projects=$(cd "$git_dir" && find . -maxdepth 1 -mindepth 1 -type d -exec basename {} \;)
+    local projects=$(cd "$dir" && find . -maxdepth 1 -mindepth 1 -type d -exec basename {} \;)
 
     # Check if the current argument is after an '-e' or if '-e' is being typed
     if [[ "$prev_word" == "-e" ]] || [[ "$cur_word" == "-e" ]]; then
@@ -103,7 +103,7 @@ display_help() {
     echo "  -h, --help  Display this help and exit"
     echo ""
     echo "Example:"
-    echo "  todo -l            List all projects inside ~/Git/"
+    echo "  todo -l            List all projects inside ~/Projects/"
     echo "  todo -e PROJECT    Edit the todo.md for PROJECT"
     echo "  todo --help        Display this help and exit"
     exit 0
